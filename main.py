@@ -1,34 +1,32 @@
-import logging
-import logging.handlers
-import os
-
 import requests
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logger_file_handler = logging.handlers.RotatingFileHandler(
-    "status.log",
-    maxBytes=1024 * 1024,
-    backupCount=1,
-    encoding="utf8",
-)
-formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
-logger_file_handler.setFormatter(formatter)
-logger.addHandler(logger_file_handler)
+# Define the list of URLs
+urls = [
+    'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/ultimate.txt',
+    'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/doh.txt',
+    'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/native.winoffice.txt',
+    'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/native.tiktok.txt',
+    'https://raw.githubusercontent.com/hagezi/dns-blocklists/main/hosts/native.apple.txt',
+]
 
-try:
-    SOME_SECRET = os.environ["SOME_SECRET"]
-except KeyError:
-    SOME_SECRET = "Token not available!"
-    #logger.info("Token not available!")
-    #raise
+# Fetch the host lists and merge them into one
+hosts = set()
 
+for url in urls:
+    response = requests.get(url)
+    hosts.update(response.text.strip().split('\n'))
 
-if __name__ == "__main__":
-    logger.info(f"Token value: {SOME_SECRET}")
+# Remove duplicate hosts
+hosts = set(hosts)
 
-    r = requests.get('https://weather.talkpython.fm/api/weather/?city=Berlin&country=DE')
-    if r.status_code == 200:
-        data = r.json()
-        temperature = data["forecast"]["temp"]
-        logger.info(f'Weather in Berlin: {temperature}')
+# Remove lines that contain specific patterns
+patterns = [
+    'www.effectivecreativeformat.com',
+    'myniceposts.com',
+]
+
+hosts = [host for host in hosts if not any(pattern in host for pattern in patterns)]
+
+# Write the merged and cleaned up host list to a file
+with open('hosts.txt', 'w') as f:
+    f.write('\n'.join(hosts))
